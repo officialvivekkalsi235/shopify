@@ -251,7 +251,7 @@ setting in the admin/settings UI changes storefront behavior.
 
 ### 10. Security
 
-The project follows these basic security rules:
+The project follows these security rules:
 
 -   Shopify Admin credentials remain on the backend.
 -   Secrets are loaded from environment variables.
@@ -263,45 +263,7 @@ The project follows these basic security rules:
 -   Merchant pincode restrictions are enforced server-side as well as in
     the UI.
 
-## Suggested Project Structure
-
-cod-shopify/
-|
-|-- cod-shopify-backend/
-|   |-- config/
-|   |   |-- db.js
-|   |   -- shopify.js
-|   |
-|   |-- models/
-|   |   |-- Idempotency.js
-|   |   |-- Setting.js
-|   |   -- Order.js
-|   |
-|   |-- routes/
-|   |   |-- shopifyRoutes.js
-|   |   |-- settingsRoutes.js
-|   |   |-- orderRoutes.js
-|   |
-|   |-- .env
-|   |-- .gitignore
-|   |-- package.json
-|   |-- server.js
-|
--- cod-shopify-frontend/
-    |-- src/
-    |   |-- components/
-    |   |   |-- CODModal.jsx
-    |   |   |-- PincodeSettings.jsx
-    |   |
-    |   |-- App.jsx
-    |   |-- App.css
-    |
-    |-- package.json
-    |-- .gitignore
-
-Your exact structure may differ slightly. Update this section if your
-actual filenames are different.
-
+  
 ## Backend Setup
 
 ### 1. Install Dependencies
