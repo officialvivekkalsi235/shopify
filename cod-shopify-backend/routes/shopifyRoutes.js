@@ -1,10 +1,25 @@
 const express = require("express");
+const rateLimit = require("express-rate-limit");
 const { shopifyGraphQL } = require("../config/shopify");
-const Order = require("../models/Order");
 const Idempotency = require("../models/Idempotency");
 
 const router = express.Router();
 
+const codOrderLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+
+  limit: 10, // max 10 requests per IP per minute
+
+  standardHeaders: true,
+  legacyHeaders: false,
+
+  message: {
+    success: false,
+    status: "rate_limited",
+    message:
+      "Too many order requests. Please wait a minute and try again.",
+  },
+});
 // ========================================
 // GET PRODUCTS + VARIANT IDS
 // ========================================
@@ -46,7 +61,7 @@ router.get("/products", async (req, res) => {
   }
 });
  
-router.post("/createorder", async (req, res) => {
+router.post(  "/createorder",  codOrderLimiter,  async (req, res) => {
   try {
     const idempotencyKey = req.headers["x-idempotency-key"];
     if (!idempotencyKey) {
