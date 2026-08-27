@@ -2,27 +2,22 @@ const express = require("express");
 const rateLimit = require("express-rate-limit");
 const { shopifyGraphQL } = require("../config/shopify");
 const Idempotency = require("../models/Idempotency");
+const Setting = require("../models/Setting");
 
 const router = express.Router();
 
 const codOrderLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
-
   limit: 10, // max 10 requests per IP per minute
-
   standardHeaders: true,
   legacyHeaders: false,
 
   message: {
     success: false,
     status: "rate_limited",
-    message:
-      "Too many order requests. Please wait a minute and try again.",
+    message: "Too many order requests. Please wait a minute and try again.",
   },
-});
-// ========================================
-// GET PRODUCTS + VARIANT IDS
-// ========================================
+}); 
 
 router.get("/products", async (req, res) => {
   try {
@@ -60,8 +55,8 @@ router.get("/products", async (req, res) => {
     });
   }
 });
- 
-router.post(  "/createorder",  codOrderLimiter,  async (req, res) => {
+
+router.post("/createorder", codOrderLimiter, async (req, res) => {
   try {
     const idempotencyKey = req.headers["x-idempotency-key"];
     if (!idempotencyKey) {
@@ -71,7 +66,8 @@ router.post(  "/createorder",  codOrderLimiter,  async (req, res) => {
       });
     }
 
-    const { name, phone, address, city, state, pincode, quantity, variantId } = req.body;
+    const { name, phone, address, city, state, pincode, quantity, variantId } =
+      req.body;
 
     if (!name || !phone || !address || !quantity || !variantId) {
       return res.status(400).json({
@@ -79,115 +75,77 @@ router.post(  "/createorder",  codOrderLimiter,  async (req, res) => {
         message: "Name, phone, address, quantity and variantId are required",
       });
     }
- 
 
-try {
-  await Idempotency.create({
-    key: idempotencyKey,
-    status: "processing",
-    requestPayload: req.body,
-  });
+    const merchantSettings = await Setting.findOne();
+    const blockedPincodes = merchantSettings?.blockedPincodes || [];
+    const normalizedPincode = String(pincode).trim();
+    const blocked = blockedPincodes.includes(normalizedPincode);
 
-  console.log(
-    "FIRST REQUEST - CONTINUE TO SHOPIFY:",
-    idempotencyKey
-  );
+    if (blocked) {
+      return res.status(400).json({
+        success: false,
+        status: "cod_unavailable",
+        message: "Cash on Delivery is not available for this pincode.",
+      });
+    }
 
-} catch (error) {
-
-
-  if (error.code === 11000) {
-
-    const existing =
-      await Idempotency.findOne({
+    try {
+      await Idempotency.create({
         key: idempotencyKey,
-      });
-
-    console.log(
-      "DUPLICATE REQUEST:",
-      existing
-    );
-
-
-
-    if (
-      existing?.status === "completed" &&
-      existing?.responseData
-    ) {
-      console.log(
-        "RETURNING EXISTING ORDER:",
-        existing.orderNumber
-      );
-
-      return res.status(200).json({
-        ...existing.responseData,
-
-        idempotent: true,
-
-        message:
-          "This order has already been created.",
-      });
-    }
-
-
-
-    if (
-      existing?.status === "processing"
-    ) {
-      return res.status(409).json({
-        success: false,
-
         status: "processing",
-
-        message:
-          "Your order request has already been sent and is being processed.",
+        requestPayload: req.body,
       });
+
+    } catch (error) {
+      if (error.code === 11000) {
+        const existing = await Idempotency.findOne({
+          key: idempotencyKey,
+        });
+        if (existing?.status === "completed" && existing?.responseData) {
+          return res.status(200).json({
+            ...existing.responseData,
+            idempotent: true,
+            message: "This order has already been created.",
+          });
+        }
+
+        if (existing?.status === "processing") {
+          return res.status(409).json({
+            success: false,
+            status: "processing",
+            message:
+              "Your order request has already been sent and is being processed.",
+          });
+        }
+
+        if (existing?.status === "unknown") {
+          return res.status(409).json({
+            success: false,
+            status: "unknown",
+            message:
+              "Your order has already been submitted and is being verified.",
+          });
+        }
+
+        if (existing?.status === "failed") {
+          return res.status(409).json({
+            success: false,
+            status: "failed",
+            message:
+              existing.errorMessage ||
+              "This order request has already been attempted.",
+          });
+        }
+
+        return res.status(409).json({
+          success: false,
+          status: "processing",
+          message: "Your order request has already been sent.",
+        });
+      }
+
+      throw error;
     }
-
-
-
-    if (
-      existing?.status === "unknown"
-    ) {
-      return res.status(409).json({
-        success: false,
-
-        status: "unknown",
-
-        message:
-          "Your order has already been submitted and is being verified.",
-      });
-    }
-
-
-
-    if (
-      existing?.status === "failed"
-    ) {
-      return res.status(409).json({
-        success: false,
-
-        status: "failed",
-
-        message:
-          existing.errorMessage ||
-          "This order request has already been attempted.",
-      });
-    }
-
-
-    return res.status(409).json({
-      success: false,
-
-      status: "processing",
-
-      message:
-        "Your order request has already been sent.",
-    });
-  }
-
-  throw error;
-}
 
     let normalizedPhone = String(phone).replace(/\D/g, "");
     if (normalizedPhone.startsWith("91") && normalizedPhone.length === 12) {
@@ -196,7 +154,7 @@ try {
     if (normalizedPhone.length !== 10) {
       await Idempotency.findOneAndUpdate(
         { key: idempotencyKey },
-        { $set: { status: "failed", errorMessage: "Invalid phone number" } }
+        { $set: { status: "failed", errorMessage: "Invalid phone number" } },
       );
       return res.status(400).json({
         success: false,
@@ -225,7 +183,7 @@ try {
     if (!variantNode) {
       await Idempotency.findOneAndUpdate(
         { key: idempotencyKey },
-        { $set: { status: "failed", errorMessage: "Invalid variant ID" } }
+        { $set: { status: "failed", errorMessage: "Invalid variant ID" } },
       );
       return res.status(400).json({
         success: false,
@@ -276,13 +234,14 @@ try {
       },
     });
 
-    const customerErrors = customerResult.data?.customerCreate?.userErrors || [];
+    const customerErrors =
+      customerResult.data?.customerCreate?.userErrors || [];
     let customer = customerResult.data?.customerCreate?.customer;
 
     const phoneAlreadyExists = customerErrors.some(
       (error) =>
         error.field?.includes("phone") &&
-        error.message?.toLowerCase().includes("already been taken")
+        error.message?.toLowerCase().includes("already been taken"),
     );
 
     if (phoneAlreadyExists) {
@@ -305,7 +264,12 @@ try {
       if (!customer) {
         await Idempotency.findOneAndUpdate(
           { key: idempotencyKey },
-          { $set: { status: "failed", errorMessage: "Existing customer not found" } }
+          {
+            $set: {
+              status: "failed",
+              errorMessage: "Existing customer not found",
+            },
+          },
         );
         return res.status(400).json({
           success: false,
@@ -315,7 +279,9 @@ try {
     } else if (customerErrors.length > 0) {
       await Idempotency.findOneAndUpdate(
         { key: idempotencyKey },
-        { $set: { status: "failed", errorMessage: customerErrors[0]?.message } }
+        {
+          $set: { status: "failed", errorMessage: customerErrors[0]?.message },
+        },
       );
       return res.status(400).json({
         success: false,
@@ -327,7 +293,7 @@ try {
     if (!customer) {
       await Idempotency.findOneAndUpdate(
         { key: idempotencyKey },
-        { $set: { status: "failed", errorMessage: "Customer not created" } }
+        { $set: { status: "failed", errorMessage: "Customer not created" } },
       );
       return res.status(400).json({
         success: false,
@@ -413,7 +379,12 @@ try {
     if (orderCreate?.userErrors?.length > 0) {
       await Idempotency.findOneAndUpdate(
         { key: idempotencyKey },
-        { $set: { status: "failed", errorMessage: orderCreate.userErrors[0].message } }
+        {
+          $set: {
+            status: "failed",
+            errorMessage: orderCreate.userErrors[0].message,
+          },
+        },
       );
       return res.status(400).json({
         success: false,
@@ -425,7 +396,7 @@ try {
     if (!orderCreate?.order) {
       await Idempotency.findOneAndUpdate(
         { key: idempotencyKey },
-        { $set: { status: "failed", errorMessage: "Order not created" } }
+        { $set: { status: "failed", errorMessage: "Order not created" } },
       );
       return res.status(400).json({
         success: false,
@@ -472,7 +443,7 @@ try {
           responseData: responseData,
           errorMessage: null,
         },
-      }
+      },
     );
 
     return res.status(201).json(responseData);
@@ -481,7 +452,7 @@ try {
     if (idempotencyKey) {
       await Idempotency.findOneAndUpdate(
         { key: idempotencyKey },
-        { $set: { status: "failed", errorMessage: error.message } }
+        { $set: { status: "failed", errorMessage: error.message } },
       ).catch(() => {});
     }
     return res.status(500).json({

@@ -15,6 +15,8 @@ function CODModal({ product, variant, onClose, onSuccess }) {
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [serverError, setServerError] = useState("");
+  const [pincodeBlocked, setPincodeBlocked] = useState(false);
+  const [pincodeMessage, setPincodeMessage] = useState("");
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -28,6 +30,9 @@ function CODModal({ product, variant, onClose, onSuccess }) {
       ...prev,
       [name]: "",
     }));
+    if (name === "pincode") {
+      checkPincode(value);
+    }
   };
 
   const validate = () => {
@@ -67,9 +72,7 @@ function CODModal({ product, variant, onClose, onSuccess }) {
     if (Number(formData.quantity) < 1) {
       newErrors.quantity = "Quantity must be at least 1";
     }
-
     setErrors(newErrors);
-
     return Object.keys(newErrors).length === 0;
   };
 
@@ -81,8 +84,6 @@ function CODModal({ product, variant, onClose, onSuccess }) {
     try {
       setLoading(true);
       setServerError("");
-
-      console.log("SENDING IDEMPOTENCY KEY:", idempotencyKeyRef.current);
 
       const response = await fetch(
         "http://localhost:5000/api/shopify/createorder",
@@ -109,22 +110,17 @@ function CODModal({ product, variant, onClose, onSuccess }) {
       );
 
       const data = await response.json();
-
       if (response.status === 409 && data.status === "processing") {
         setServerError(data.message);
-
         return;
       }
-
       if (response.status === 409 && data.status === "unknown") {
         setServerError(data.message);
-
         return;
       }
 
       if (!response.ok) {
         setServerError(data.message || "Unable to place your order");
-
         return;
       }
 
@@ -144,6 +140,32 @@ function CODModal({ product, variant, onClose, onSuccess }) {
       setServerError(error.message || "Unable to place your order");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const checkPincode = async (pincode) => {
+    if (!/^\d{6}$/.test(pincode)) {
+      setPincodeBlocked(false);
+      setPincodeMessage("");
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `http://localhost:5000/api/settings/check-pincode/${pincode}`,
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        return;
+      }
+
+      setPincodeBlocked(data.blocked);
+
+      setPincodeMessage(data.blocked ? data.message : "");
+    } catch (error) {
+      console.error("PINCODE CHECK ERROR:", error);
     }
   };
 
@@ -309,22 +331,19 @@ function CODModal({ product, variant, onClose, onSuccess }) {
             Pay when your order is delivered
           </div>
 
+          {pincodeBlocked && (
+            <span className="cod-error-text">{pincodeMessage}</span>
+          )}
           <button
             type="submit"
             className="cod-submit-button"
-            disabled={loading}
+            disabled={loading || pincodeBlocked}
           >
-            {loading ? (
-              <>
-                <span className="cod-spinner"></span>
-                Order request sent...
-              </>
-            ) : (
-              <>
-                Place Order
-                <span>→</span>
-              </>
-            )}
+            {pincodeBlocked
+              ? "COD Not Available"
+              : loading
+                ? "Placing order..."
+                : "Place Order"}
           </button>
         </form>
       </div>

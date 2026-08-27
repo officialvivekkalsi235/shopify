@@ -5,6 +5,7 @@ require("dotenv").config();
 const connectDB = require("./config/db");
 const orderRoutes = require("./routes/orderRoutes");
 const shopifyRoutes = require("./routes/shopifyRoutes");
+const settingsRoutes = require("./routes/settingsRoutes");
 
 const app = express();
 
@@ -14,6 +15,7 @@ app.use(cors());
 app.use(express.json());
 app.use("/api/orders", orderRoutes);
 app.use("/api/shopify", shopifyRoutes);
+app.use("/api/settings",  settingsRoutes);
 
 app.get("/", (req, res) => {
   res.status(200).json({
