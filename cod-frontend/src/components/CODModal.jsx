@@ -229,7 +229,7 @@ function CODModal({ product, variant, onClose, onSuccess }) {
               <input
                 type="tel"
                 name="phone"
-                placeholder="9876543210"
+                placeholder="0000000000"
                 value={formData.phone}
                 onChange={handleChange}
               />
@@ -262,7 +262,7 @@ function CODModal({ product, variant, onClose, onSuccess }) {
               <input
                 type="text"
                 name="city"
-                placeholder="Pathankot"
+                placeholder="San Francisco"
                 value={formData.city}
                 onChange={handleChange}
               />
@@ -278,7 +278,7 @@ function CODModal({ product, variant, onClose, onSuccess }) {
               <input
                 type="text"
                 name="state"
-                placeholder="Punjab"
+                placeholder="California"
                 value={formData.state}
                 onChange={handleChange}
               />
@@ -296,7 +296,7 @@ function CODModal({ product, variant, onClose, onSuccess }) {
               <input
                 type="text"
                 name="pincode"
-                placeholder="145001"
+                placeholder="000000"
                 maxLength={6}
                 value={formData.pincode}
                 onChange={handleChange}
