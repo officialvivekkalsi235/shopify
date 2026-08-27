@@ -451,7 +451,6 @@ The backend should reject the order. This proves the merchant
 restriction cannot be bypassed through a direct API request.
 
 ## Work Completed During Development
-The project work included:
 -   Shopify product and variant retrieval
 -   COD modal UI
 -   Customer delivery form
@@ -474,26 +473,3 @@ The project work included:
 -   Server-side blocked-pincode enforcement
 -   Environment-variable configuration
 
-## Assignment Coverage
-The current implementation covers or contributes to these assignment
-areas:
-
-### Core COD Form
-Customer details are collected and a real Shopify order is created.
-
-### Idempotency
-Duplicate submissions using the same idempotency key are protected from
-creating multiple orders.
-
-### Phone Normalization
-Indian phone numbers are normalized into a consistent format.
-
-### Merchant Setting
-The COD pincode blocklist is configurable by the merchant and changes
-storefront behavior.
-
-### Security and Robustness
-Admin credentials stay server-side, input is validated, phones are
-normalized, blocked pincodes are enforced by the backend, and basic rate
-limiting is applied.
- 
