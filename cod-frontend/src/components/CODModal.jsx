@@ -231,6 +231,7 @@ function CODModal({ product, variant, onClose, onSuccess }) {
                 name="phone"
                 placeholder="0000000000"
                 value={formData.phone}
+                maxLength={10}
                 onChange={handleChange}
               />
             </div>
