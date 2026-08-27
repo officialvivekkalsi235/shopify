@@ -7,6 +7,8 @@ prevents duplicate submissions with idempotency, applies basic abuse
 protection, validates and normalizes customer data, and includes
 merchant-controlled COD pincode settings.
 
+Vodeo Link : https://www.loom.com/share/5893b81d3f9b4faebab5487218c45655
+
 ## Project Overview
 
 The application has two main sides:
