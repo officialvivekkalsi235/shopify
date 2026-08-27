@@ -452,20 +452,16 @@ restriction cannot be bypassed through a direct API request.
 
 ## Work Completed During Development
 The project work included:
--   Shopify authentication/configuration setup
 -   Shopify product and variant retrieval
 -   COD modal UI
 -   Customer delivery form
 -   Client-side form validation
 -   Shopify customer creation
 -   Real Shopify order creation
--   Shipping and billing address mapping
--   Indian phone normalization
+-   Phone normalization
 -   Handling Shopify customer validation errors
 -   Idempotency key generation on the frontend
--   `X-Idempotency-Key` request header
 -   MongoDB idempotency records
--   Processing/completed/failed idempotency states
 -   Duplicate-request protection
 -   Stored successful order response
 -   COD order success handling
@@ -475,10 +471,7 @@ The project work included:
 -   COD pincode blocklist APIs
 -   Merchant add/remove pincode settings UI
 -   Improved pincode settings UI
--   Storefront pincode availability check
--   COD-unavailable customer feedback
 -   Server-side blocked-pincode enforcement
--   Secure backend-only Shopify credentials
 -   Environment-variable configuration
 
 ## Assignment Coverage
